@@ -427,8 +427,13 @@ To stop sharing a mission, open **My routes** and click the **unshare** button (
 | **DJI Mavic 3D**   | M3D Camera                       |
 | **DJI Mavic 3TD**  | M3TD Camera                      |
 | **DJI Mini 4 Pro** | Mini 4 Pro Camera                |
+| **DJI Mini 5 Pro** | Mini 5 Pro Camera                |
 
 The PSDK (Payload SDK) option on M300/M350 represents third-party payloads.
+
+The Mini series exports the consumer (DJI Fly) WPML dialect so missions load
+directly in the DJI Fly app; all other drones export the enterprise (DJI Pilot 2)
+dialect.
 
 ---
 

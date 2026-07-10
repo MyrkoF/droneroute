@@ -47,10 +47,16 @@ mission.kmz
 └── res/              # Resources (reference images, etc.)
 ```
 
-Both files use KML extended with DJI WPML namespace:
+Both files use KML extended with a DJI WPML namespace. The namespace depends on
+the drone's dialect:
 
 - KML: `http://www.opengis.net/kml/2.2`
-- WPML: `http://www.dji.com/wpmz/1.0.2`
+- WPML (enterprise — DJI Pilot 2 / Cloud API): `http://www.dji.com/wpmz/1.0.2`
+- WPML (consumer — DJI Fly, Mini series): `http://www.uav.com/wpmz/1.0.2`
+
+Consumer-dialect KMZ files place `template.kml`, `waylines.wpml`, and `res/`
+inside a `wpmz/` directory (required by DJI Fly) and omit `payloadInfo` and
+`takeOffSecurityHeight`.
 
 ### Supported Drones
 
@@ -66,8 +72,13 @@ Both files use KML extended with DJI WPML namespace:
 | DJI Mavic 3D      | 91 (sub 0)     | M3D Camera                       |
 | DJI Mavic 3TD     | 91 (sub 1)     | M3TD Camera                      |
 | DJI Mini 4 Pro \* | 100            | Mini 4 Pro Camera                |
+| DJI Mini 5 Pro \* | 68 (sub 0)     | Mini 5 Pro Camera                |
 
-\* Consumer drone; WPML format may not import into DJI Fly.
+\* Consumer drone: exported with the consumer WPML dialect (www.uav.com, wpmz/
+directory, no payloadInfo) so missions import into DJI Fly. The Mini 5 Pro's
+droneEnumValue (68, verified from a native DJI RC2 mission) is shared with the
+"DJI M30 (Dock)" entry, which is why the dialect is tracked per model rather than
+inferred from the enum.
 
 ## Data Model
 

@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DRONE_MODELS } from "@droneroute/shared";
+import { DRONE_MODELS, droneModelKey } from "@droneroute/shared";
 import type {
   HeadingMode,
   FinishAction,
@@ -32,9 +32,7 @@ export function MissionConfig() {
   const unitSystem = usePreferencesStore((s) => s.preferences.unitSystem);
 
   const selectedDrone = DRONE_MODELS.find(
-    (d) =>
-      d.droneEnumValue === config.droneEnumValue &&
-      d.droneSubEnumValue === config.droneSubEnumValue,
+    (d) => droneModelKey(d) === droneModelKey(config),
   );
 
   return (
@@ -42,17 +40,15 @@ export function MissionConfig() {
       <div>
         <Label className="text-xs">Drone model</Label>
         <Select
-          value={`${config.droneEnumValue}-${config.droneSubEnumValue}`}
+          value={droneModelKey(config)}
           onValueChange={(v) => {
-            const [drone, sub] = v.split("-").map(Number);
-            const model = DRONE_MODELS.find(
-              (d) => d.droneEnumValue === drone && d.droneSubEnumValue === sub,
-            );
+            const model = DRONE_MODELS.find((d) => droneModelKey(d) === v);
             if (model) {
               setConfig({
                 droneEnumValue: model.droneEnumValue,
                 droneSubEnumValue: model.droneSubEnumValue,
                 payloadEnumValue: model.payloads[0]?.payloadEnumValue || 0,
+                dialect: model.dialect ?? "enterprise",
               });
             }
           }}
@@ -62,10 +58,7 @@ export function MissionConfig() {
           </SelectTrigger>
           <SelectContent>
             {DRONE_MODELS.map((d) => (
-              <SelectItem
-                key={`${d.droneEnumValue}-${d.droneSubEnumValue}`}
-                value={`${d.droneEnumValue}-${d.droneSubEnumValue}`}
-              >
+              <SelectItem key={droneModelKey(d)} value={droneModelKey(d)}>
                 {d.label}
               </SelectItem>
             ))}

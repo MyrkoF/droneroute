@@ -33,7 +33,7 @@ A free, open-source mission planner for DJI drones. Plan waypoint missions on an
 
 ## Supported Drones
 
-DJI M300 RTK, M350 RTK, M30/M30T, Mavic 3E/3T/3M/3D/3TD, Mini 4 Pro.
+DJI M300 RTK, M350 RTK, M30/M30T, Mavic 3E/3T/3M/3D/3TD, Mini 4 Pro, Mini 5 Pro.
 
 ## Getting Started
 

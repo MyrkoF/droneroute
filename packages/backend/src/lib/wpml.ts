@@ -4,7 +4,17 @@ import type {
   Waypoint,
   WaypointAction,
   PointOfInterest,
+  WpmlDialect,
 } from "@droneroute/shared";
+
+// WPML namespace per dialect. Enterprise (DJI Pilot 2 / Cloud API) uses
+// www.dji.com; consumer (DJI Fly, Mini series) uses www.uav.com. The consumer
+// namespace and structure were verified against a native DJI Fly mission
+// exported off a DJI RC2 with a Mini 5 Pro.
+const WPML_NAMESPACE: Record<WpmlDialect, string> = {
+  enterprise: "http://www.dji.com/wpmz/1.0.2",
+  consumer: "http://www.uav.com/wpmz/1.0.2",
+};
 
 // ── XML Helpers ──────────────────────────────────────────
 
@@ -140,6 +150,7 @@ function buildActionGroupXml(wp: Waypoint, groupIdOffset: number): string {
 
 export function buildTemplateKml(mission: Mission): string {
   const c = mission.config;
+  if (c.dialect === "consumer") return buildConsumerTemplateKml(mission);
   const pois = mission.pois || [];
   const now = Date.now();
 
@@ -228,6 +239,7 @@ export function buildTemplateKml(mission: Mission): string {
 
 export function buildWaylinesWpml(mission: Mission): string {
   const c = mission.config;
+  if (c.dialect === "consumer") return buildConsumerWaylinesWpml(mission);
   const pois = mission.pois || [];
   const now = Date.now();
 
@@ -313,5 +325,126 @@ export function buildWaylinesWpml(mission: Mission): string {
     </wpml:waylineCoordinateSysParam>${placemarks}
   </Folder>
 </Document>
+</kml>`;
+}
+
+// ── Consumer dialect (DJI Fly, Mini series) ──────────────
+//
+// The Mini series loads missions through the DJI Fly app, which expects the
+// www.uav.com WPML dialect: a minimal template.kml (mission config only, no
+// Folder), no payloadInfo, and heights relative to the take-off point. Verified
+// against a native Mini 5 Pro mission exported off a DJI RC2.
+
+/** Shared mission config block for the consumer dialect (no payloadInfo). */
+function buildConsumerMissionConfig(c: MissionConfig): string {
+  return `    <wpml:missionConfig>
+      <wpml:flyToWaylineMode>${c.flyToWaylineMode}</wpml:flyToWaylineMode>
+      <wpml:finishAction>${c.finishAction}</wpml:finishAction>
+      <wpml:exitOnRCLost>${c.exitOnRCLost}</wpml:exitOnRCLost>
+      <wpml:executeRCLostAction>${c.executeRCLostAction}</wpml:executeRCLostAction>
+      <wpml:globalTransitionalSpeed>${c.globalTransitionalSpeed}</wpml:globalTransitionalSpeed>
+      <wpml:droneInfo>
+        <wpml:droneEnumValue>${c.droneEnumValue}</wpml:droneEnumValue>
+        <wpml:droneSubEnumValue>${c.droneSubEnumValue}</wpml:droneSubEnumValue>
+      </wpml:droneInfo>
+    </wpml:missionConfig>`;
+}
+
+function buildConsumerTemplateKml(mission: Mission): string {
+  const c = mission.config;
+  const now = Date.now();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:wpml="${WPML_NAMESPACE.consumer}">
+  <Document>
+    <wpml:author>fly</wpml:author>
+    <wpml:createTime>${now}</wpml:createTime>
+    <wpml:updateTime>${now}</wpml:updateTime>
+${buildConsumerMissionConfig(c)}
+  </Document>
+</kml>`;
+}
+
+function buildConsumerPlacemark(
+  wp: Waypoint,
+  c: MissionConfig,
+  pois: PointOfInterest[],
+): string {
+  const actionGroupXml = buildActionGroupXml(wp, wp.index);
+  const headingMode = wp.useGlobalHeadingParam
+    ? c.globalHeadingMode
+    : wp.headingMode || c.globalHeadingMode;
+  const turnMode = wp.useGlobalTurnParam
+    ? c.globalTurnMode
+    : wp.turnMode || c.globalTurnMode;
+  const speed = wp.useGlobalSpeed ? c.autoFlightSpeed : wp.speed;
+
+  let headingAngle = wp.headingAngle ?? 0;
+  let poiPoint = "0.000000,0.000000,0.000000";
+  if (headingMode === "towardPOI" && wp.poiId) {
+    const poi = findPoi(pois, wp.poiId);
+    if (poi) {
+      headingAngle = computeBearing(
+        wp.latitude,
+        wp.longitude,
+        poi.latitude,
+        poi.longitude,
+      );
+      poiPoint = `${poi.latitude},${poi.longitude},${poi.height}`;
+    }
+  }
+
+  return `
+      <Placemark>
+        <Point>
+          <coordinates>${wp.longitude},${wp.latitude}</coordinates>
+        </Point>
+        <wpml:index>${wp.index}</wpml:index>
+        <wpml:executeHeight>${wp.height}</wpml:executeHeight>
+        <wpml:waypointSpeed>${speed}</wpml:waypointSpeed>
+        <wpml:waypointHeadingParam>
+          <wpml:waypointHeadingMode>${headingMode}</wpml:waypointHeadingMode>
+          <wpml:waypointHeadingAngle>${headingAngle}</wpml:waypointHeadingAngle>
+          <wpml:waypointPoiPoint>${poiPoint}</wpml:waypointPoiPoint>
+          <wpml:waypointHeadingAngleEnable>${headingMode === "fixed" ? 1 : 0}</wpml:waypointHeadingAngleEnable>
+          <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
+          <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
+        </wpml:waypointHeadingParam>
+        <wpml:waypointTurnParam>
+          <wpml:waypointTurnMode>${turnMode}</wpml:waypointTurnMode>
+          <wpml:waypointTurnDampingDist>${wp.turnDampingDist ?? 0}</wpml:waypointTurnDampingDist>
+        </wpml:waypointTurnParam>
+        <wpml:useStraightLine>0</wpml:useStraightLine>${actionGroupXml}
+        <wpml:waypointGimbalHeadingParam>
+          <wpml:waypointGimbalPitchAngle>${wp.gimbalPitchAngle}</wpml:waypointGimbalPitchAngle>
+          <wpml:waypointGimbalYawAngle>0</wpml:waypointGimbalYawAngle>
+        </wpml:waypointGimbalHeadingParam>
+      </Placemark>`;
+}
+
+function buildConsumerWaylinesWpml(mission: Mission): string {
+  const c = mission.config;
+  const pois = mission.pois || [];
+  // DJI Fly waypoint missions fly relative to the take-off point; the enterprise
+  // "aboveGroundLevel" mode has no equivalent in the consumer app.
+  const heightMode =
+    c.heightMode === "EGM96" ? "EGM96" : "relativeToStartPoint";
+
+  const placemarks = mission.waypoints
+    .map((wp) => buildConsumerPlacemark(wp, c, pois))
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:wpml="${WPML_NAMESPACE.consumer}">
+  <Document>
+${buildConsumerMissionConfig(c)}
+    <Folder>
+      <wpml:templateId>0</wpml:templateId>
+      <wpml:executeHeightMode>${heightMode}</wpml:executeHeightMode>
+      <wpml:waylineId>0</wpml:waylineId>
+      <wpml:distance>0</wpml:distance>
+      <wpml:duration>0</wpml:duration>
+      <wpml:autoFlightSpeed>${c.autoFlightSpeed}</wpml:autoFlightSpeed>${placemarks}
+    </Folder>
+  </Document>
 </kml>`;
 }

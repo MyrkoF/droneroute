@@ -106,11 +106,22 @@ export interface WaypointAction {
 
 // ── Drone & Payload ──────────────────────────────────────
 
+/**
+ * WPML dialect a drone expects.
+ *
+ * - "enterprise": DJI Pilot 2 / Cloud API format — namespace www.dji.com, with
+ *   payloadInfo and takeOffSecurityHeight. Used by M300/M30/Mavic 3E and friends.
+ * - "consumer": DJI Fly format — namespace www.uav.com, no payloadInfo. Used by
+ *   the Mini series. Absent means "enterprise".
+ */
+export type WpmlDialect = "enterprise" | "consumer";
+
 export interface DroneModel {
   label: string;
   droneEnumValue: number;
   droneSubEnumValue: number;
   payloads: PayloadModel[];
+  dialect?: WpmlDialect;
 }
 
 export interface PayloadModel {
@@ -200,8 +211,34 @@ export const DRONE_MODELS: DroneModel[] = [
     droneEnumValue: 100,
     droneSubEnumValue: 0,
     payloads: [{ label: "Mini 4 Pro Camera", payloadEnumValue: 100 }],
+    dialect: "consumer",
+  },
+  {
+    // Verified from a native DJI Fly mission exported off a DJI RC2: the Mini 5
+    // Pro flies as droneEnumValue 68 (shared with the Mini 4 Pro) using the
+    // consumer WPML dialect (www.uav.com namespace, no payloadInfo). Note that
+    // enum 68 is also used by "DJI M30 (Dock)" above, which is why the dialect
+    // must be carried explicitly rather than inferred from the enum.
+    label: "DJI Mini 5 Pro",
+    droneEnumValue: 68,
+    droneSubEnumValue: 0,
+    payloads: [{ label: "Mini 5 Pro Camera", payloadEnumValue: 0 }],
+    dialect: "consumer",
   },
 ];
+
+/**
+ * Stable identity for a drone model in UI selectors. The (enum, sub) pair is not
+ * unique — the M30 Dock and the Mini 5 Pro both use 68/0 — so the dialect is part
+ * of the key. Works for both DroneModel and MissionConfig.
+ */
+export function droneModelKey(x: {
+  droneEnumValue: number;
+  droneSubEnumValue: number;
+  dialect?: WpmlDialect;
+}): string {
+  return `${x.droneEnumValue}-${x.droneSubEnumValue}-${x.dialect ?? "enterprise"}`;
+}
 
 // ── Point of Interest ────────────────────────────────────
 
@@ -262,6 +299,8 @@ export interface MissionConfig {
   globalHeadingMode: HeadingMode;
   globalTurnMode: TurnMode;
   gimbalPitchMode: GimbalPitchMode;
+  /** WPML dialect to emit. Absent means "enterprise". Set from the selected drone. */
+  dialect?: WpmlDialect;
 }
 
 // ── Mission ──────────────────────────────────────────────

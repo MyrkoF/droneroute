@@ -4,7 +4,7 @@ Configure your drone model, camera, altitude reference, and safety options for t
 
 ## What you can do
 
-- **Choose your drone model**: M300 RTK, M350 RTK, M30/M30T, M30 Dock, Mavic 3E/3T/3M/3D/3TD, Mini 4 Pro.
+- **Choose your drone model**: M300 RTK, M350 RTK, M30/M30T, M30 Dock, Mavic 3E/3T/3M/3D/3TD, Mini 4 Pro, Mini 5 Pro.
 - **Choose a camera/payload** available for the selected drone.
 - **Set a global flight speed** and takeoff security height.
 - **Choose a height reference**:
@@ -26,6 +26,7 @@ Configure your drone model, camera, altitude reference, and safety options for t
 ## Good to know
 
 - The available cameras change depending on which drone you select.
+- The Mini series (Mini 4 Pro, Mini 5 Pro) exports the consumer DJI Fly mission format, so its missions load directly in the DJI Fly app; every other drone exports the enterprise DJI Pilot 2 format.
 - If the estimated flight time exceeds the battery limit you set, a warning appears.
 - Height reference affects how altitude values are interpreted by the drone — choose the one that matches your operational needs. The default is **above ground level**.
 - All height fields enforce a minimum of 1 meter.
