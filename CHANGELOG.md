@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Mission templates on touch devices** — Orbit, Grid, Facade and Pencil
+  templates can now be drawn on tablets and phones. A single-finger drag draws
+  the template (the map pan is suppressed only while drawing); two fingers keep
+  the native pinch-zoom / pan gesture. Previously the drag-to-draw interaction
+  responded to a mouse only, so the templates were unusable on touch devices.
+
 ### Added
 
 - **Admin back office panel** — cloud-only (`SELF_HOSTED=false`) user management

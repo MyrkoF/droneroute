@@ -40,7 +40,7 @@ export function PencilDrawHandler() {
     resetState();
   }, [templateMode, resetState]);
 
-  // Map mouse events for pencil drawing
+  // Map mouse + touch events for pencil drawing
   useEffect(() => {
     if (!map || templateMode !== "pencil") return;
 
@@ -88,14 +88,72 @@ export function PencilDrawHandler() {
       setConfirmed(true);
     };
 
+    // Touch events mirror the mouse flow so the pencil path can be drawn on
+    // tablets / phones. One finger draws; two (or more) fingers are left to the
+    // map's native pinch-zoom / pan. preventDefault() on touchstart suppresses
+    // the map pan for the duration of a single-finger draw only.
+    const onTouchStart = (e: any) => {
+      if (confirmed) return;
+      if (e.points && e.points.length > 1) return;
+      e.preventDefault();
+      const pos: [number, number] = [e.lngLat.lat, e.lngLat.lng];
+      drawingRef.current = true;
+      pathRef.current = [pos];
+      lastPointTime.current = Date.now();
+      setRawPath([pos]);
+    };
+
+    const onTouchMove = (e: any) => {
+      if (!drawingRef.current) return;
+      if (e.points && e.points.length > 1) return;
+      const now = Date.now();
+      if (now - lastPointTime.current < 16) return;
+      lastPointTime.current = now;
+      e.preventDefault();
+      const pos: [number, number] = [e.lngLat.lat, e.lngLat.lng];
+      pathRef.current = [...pathRef.current, pos];
+      setRawPath([...pathRef.current]);
+    };
+
+    const onTouchEnd = (e: any) => {
+      if (!drawingRef.current) return;
+      drawingRef.current = false;
+
+      // On touchend lngLat is derived from the lifted finger (changedTouches).
+      const finalPos: [number, number] = e.lngLat
+        ? [e.lngLat.lat, e.lngLat.lng]
+        : pathRef.current[pathRef.current.length - 1];
+      const finalPath = [...pathRef.current, finalPos];
+      pathRef.current = finalPath;
+      setRawPath(finalPath);
+
+      const totalLen = pathLength(finalPath);
+      if (totalLen < MIN_PATH_LENGTH_M) {
+        resetState();
+        return;
+      }
+
+      setPencilParams({
+        ...DEFAULT_PENCIL_PARAMS,
+        path: finalPath,
+      });
+      setConfirmed(true);
+    };
+
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
+    map.on("touchstart", onTouchStart);
+    map.on("touchmove", onTouchMove);
+    map.on("touchend", onTouchEnd);
 
     return () => {
       map.off("mousedown", onMouseDown);
       map.off("mousemove", onMouseMove);
       map.off("mouseup", onMouseUp);
+      map.off("touchstart", onTouchStart);
+      map.off("touchmove", onTouchMove);
+      map.off("touchend", onTouchEnd);
       map.getMap().dragPan.enable();
     };
   }, [map, templateMode, confirmed, resetState]);
