@@ -87,7 +87,7 @@ export function TemplateDrawHandler() {
     resetState();
   }, [templateMode, resetState]);
 
-  // Map mouse events for drag-to-draw
+  // Map mouse + touch events for drag-to-draw
   useEffect(() => {
     if (!map || !templateMode || templateMode === "pencil") return;
 
@@ -158,14 +158,93 @@ export function TemplateDrawHandler() {
       currentDrag = null;
     };
 
+    // Touch events mirror the mouse flow so templates can be drawn on
+    // tablets / phones. One finger draws the template; two (or more) fingers
+    // are left to the map's native pinch-zoom / pan. preventDefault() on
+    // touchstart suppresses the map pan for the duration of a single-finger
+    // draw only.
+    const onTouchStart = (e: any) => {
+      if (confirmed) return;
+      if (e.points && e.points.length > 1) return;
+      e.preventDefault();
+      const pos: [number, number] = [e.lngLat.lat, e.lngLat.lng];
+      isDragging = true;
+      currentDrag = { start: pos, end: pos };
+      setDragging(true);
+      setDragState(currentDrag);
+    };
+
+    const onTouchMove = (e: any) => {
+      if (!isDragging || !currentDrag) return;
+      if (e.points && e.points.length > 1) return;
+      e.preventDefault();
+      currentDrag = { ...currentDrag, end: [e.lngLat.lat, e.lngLat.lng] };
+      setDragState({ ...currentDrag });
+    };
+
+    const onTouchEnd = (e: any) => {
+      if (!isDragging || !currentDrag) return;
+      isDragging = false;
+
+      // On touchend lngLat is derived from the lifted finger (changedTouches).
+      const endPos: [number, number] = e.lngLat
+        ? [e.lngLat.lat, e.lngLat.lng]
+        : currentDrag.end;
+      const finalDrag = { ...currentDrag, end: endPos };
+      setDragState(finalDrag);
+      setDragging(false);
+
+      const dist = haversine(
+        finalDrag.start[0],
+        finalDrag.start[1],
+        finalDrag.end[0],
+        finalDrag.end[1],
+      );
+
+      if (dist < 5) {
+        resetState();
+        return;
+      }
+
+      const tm = useMissionStore.getState().templateMode;
+      if (tm === "orbit") {
+        setOrbitParams({
+          ...DEFAULT_ORBIT_PARAMS,
+          center: finalDrag.start,
+          radiusM: Math.round(dist),
+        });
+      } else if (tm === "grid") {
+        setGridParams({
+          ...DEFAULT_GRID_PARAMS,
+          corner1: finalDrag.start,
+          corner2: finalDrag.end,
+        });
+      } else if (tm === "facade") {
+        setFacadeParams({
+          ...DEFAULT_FACADE_PARAMS,
+          point1: finalDrag.start,
+          point2: finalDrag.end,
+        });
+      }
+
+      setConfirmed(true);
+      currentDrag = null;
+    };
+
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
+    map.on("touchstart", onTouchStart);
+    map.on("touchmove", onTouchMove);
+    map.on("touchend", onTouchEnd);
 
     return () => {
       map.off("mousedown", onMouseDown);
       map.off("mousemove", onMouseMove);
       map.off("mouseup", onMouseUp);
+      map.off("touchstart", onTouchStart);
+      map.off("touchmove", onTouchMove);
+      map.off("touchend", onTouchEnd);
       map.getMap().dragPan.enable();
     };
   }, [map, templateMode, confirmed, resetState]);
