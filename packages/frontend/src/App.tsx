@@ -357,6 +357,11 @@ export default function App() {
           e.preventDefault();
           setTemplateMode(templateMode === "orbit" ? null : "orbit");
           break;
+        case "s":
+          if (e.metaKey || e.ctrlKey) return; // don't intercept Cmd/Ctrl+S (save)
+          e.preventDefault();
+          setTemplateMode(templateMode === "orbitz" ? null : "orbitz");
+          break;
         case "g":
           if (e.metaKey || e.ctrlKey) return;
           e.preventDefault();

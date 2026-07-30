@@ -5,15 +5,18 @@ import { TemplateConfigPanel } from "./TemplateConfigPanel";
 import { TemplatePreview } from "./TemplatePreview";
 import type {
   OrbitParams,
+  OrbitZParams,
   GridParams,
   FacadeParams,
   TemplateResult,
 } from "@/lib/templates";
 import {
   generateOrbit,
+  generateOrbitZ,
   generateGrid,
   generateFacade,
   DEFAULT_ORBIT_PARAMS,
+  DEFAULT_ORBITZ_PARAMS,
   DEFAULT_GRID_PARAMS,
   DEFAULT_FACADE_PARAMS,
 } from "@/lib/templates";
@@ -71,6 +74,7 @@ export function TemplateDrawHandler() {
   const [confirmed, setConfirmed] = useState(false);
 
   const [orbitParams, setOrbitParams] = useState<OrbitParams | null>(null);
+  const [orbitZParams, setOrbitZParams] = useState<OrbitZParams | null>(null);
   const [gridParams, setGridParams] = useState<GridParams | null>(null);
   const [facadeParams, setFacadeParams] = useState<FacadeParams | null>(null);
 
@@ -79,6 +83,7 @@ export function TemplateDrawHandler() {
     setDragState(null);
     setConfirmed(false);
     setOrbitParams(null);
+    setOrbitZParams(null);
     setGridParams(null);
     setFacadeParams(null);
   }, []);
@@ -140,6 +145,12 @@ export function TemplateDrawHandler() {
           center: finalDrag.start,
           radiusM: Math.round(dist),
         });
+      } else if (tm === "orbitz") {
+        setOrbitZParams({
+          ...DEFAULT_ORBITZ_PARAMS,
+          center: finalDrag.start,
+          radiusM: Math.round(dist),
+        });
       } else if (tm === "grid") {
         setGridParams({
           ...DEFAULT_GRID_PARAMS,
@@ -172,10 +183,11 @@ export function TemplateDrawHandler() {
 
   const preview: TemplateResult | null = useMemo(() => {
     if (orbitParams) return generateOrbit(orbitParams);
+    if (orbitZParams) return generateOrbitZ(orbitZParams);
     if (gridParams) return generateGrid(gridParams);
     if (facadeParams) return generateFacade(facadeParams);
     return null;
-  }, [orbitParams, gridParams, facadeParams]);
+  }, [orbitParams, orbitZParams, gridParams, facadeParams]);
 
   const dragPreview = useMemo(() => {
     if (!dragging || !dragState || !templateMode) return null;
@@ -190,6 +202,13 @@ export function TemplateDrawHandler() {
     if (templateMode === "orbit") {
       return generateOrbit({
         ...DEFAULT_ORBIT_PARAMS,
+        center: dragState.start,
+        radiusM: Math.round(dist),
+      });
+    }
+    if (templateMode === "orbitz") {
+      return generateOrbitZ({
+        ...DEFAULT_ORBITZ_PARAMS,
         center: dragState.start,
         radiusM: Math.round(dist),
       });
@@ -214,7 +233,7 @@ export function TemplateDrawHandler() {
   // Build drag guide GeoJSON
   const dragGuideGeojson = useMemo(() => {
     if (!dragging || !dragState) return null;
-    if (templateMode === "orbit") {
+    if (templateMode === "orbit" || templateMode === "orbitz") {
       const dist = haversine(
         dragState.start[0],
         dragState.start[1],
@@ -292,22 +311,24 @@ export function TemplateDrawHandler() {
       )}
 
       {/* Center marker for orbit drag */}
-      {dragging && dragState && templateMode === "orbit" && (
-        <Marker
-          longitude={dragState.start[1]}
-          latitude={dragState.start[0]}
-          anchor="center"
-        >
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#a78bfa",
-            }}
-          />
-        </Marker>
-      )}
+      {dragging &&
+        dragState &&
+        (templateMode === "orbit" || templateMode === "orbitz") && (
+          <Marker
+            longitude={dragState.start[1]}
+            latitude={dragState.start[0]}
+            anchor="center"
+          >
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#a78bfa",
+              }}
+            />
+          </Marker>
+        )}
 
       {/* Facade endpoint markers during drag */}
       {dragging && dragState && templateMode === "facade" && (
@@ -351,9 +372,11 @@ export function TemplateDrawHandler() {
         <TemplateConfigPanel
           type={templateMode}
           orbitParams={orbitParams}
+          orbitZParams={orbitZParams}
           gridParams={gridParams}
           facadeParams={facadeParams}
           onOrbitChange={setOrbitParams}
+          onOrbitZChange={setOrbitZParams}
           onGridChange={setGridParams}
           onFacadeChange={setFacadeParams}
           onApply={handleApply}

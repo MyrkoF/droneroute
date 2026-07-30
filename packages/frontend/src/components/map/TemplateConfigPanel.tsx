@@ -27,19 +27,23 @@ import {
 import type {
   TemplateType,
   OrbitParams,
+  OrbitZParams,
   GridParams,
   FacadeParams,
   PencilParams,
 } from "@/lib/templates";
+import { orbitZLevelCount } from "@/lib/templates";
 import type { PointOfInterest } from "@droneroute/shared";
 
 interface TemplateConfigPanelProps {
   type: TemplateType;
   orbitParams?: OrbitParams | null;
+  orbitZParams?: OrbitZParams | null;
   gridParams?: GridParams | null;
   facadeParams?: FacadeParams | null;
   pencilParams?: PencilParams | null;
   onOrbitChange?: (params: OrbitParams) => void;
+  onOrbitZChange?: (params: OrbitZParams) => void;
   onGridChange?: (params: GridParams) => void;
   onFacadeChange?: (params: FacadeParams) => void;
   onPencilChange?: (params: PencilParams) => void;
@@ -52,10 +56,12 @@ interface TemplateConfigPanelProps {
 export function TemplateConfigPanel({
   type,
   orbitParams,
+  orbitZParams,
   gridParams,
   facadeParams,
   pencilParams,
   onOrbitChange,
+  onOrbitZChange,
   onGridChange,
   onFacadeChange,
   onPencilChange,
@@ -68,19 +74,23 @@ export function TemplateConfigPanel({
   const title =
     type === "orbit"
       ? "Orbit"
-      : type === "grid"
-        ? "Grid survey"
-        : type === "facade"
-          ? "Facade scan"
-          : "Pencil path";
+      : type === "orbitz"
+        ? "Orbit+Z"
+        : type === "grid"
+          ? "Grid survey"
+          : type === "facade"
+            ? "Facade scan"
+            : "Pencil path";
   const description =
     type === "orbit"
       ? "Circular flight path around a center point. Adjust the radius, number of points, and enable POI to keep the camera focused on the center."
-      : type === "grid"
-        ? "Lawn-mower zigzag pattern for systematic area coverage. Control line spacing for overlap and rotation to align with the terrain."
-        : type === "facade"
-          ? "Vertical scanning pattern along a wall or building face. Set the standoff distance, altitude range, and grid density for full coverage."
-          : "Freehand flight path drawn on the map. Adjust the number of waypoints to control how closely the path is followed.";
+      : type === "orbitz"
+        ? "Stacked orbits at multiple altitudes. The number of levels is derived from the vertical overlap and camera field of view to fully cover a vertical structure."
+        : type === "grid"
+          ? "Lawn-mower zigzag pattern for systematic area coverage. Control line spacing for overlap and rotation to align with the terrain."
+          : type === "facade"
+            ? "Vertical scanning pattern along a wall or building face. Set the standoff distance, altitude range, and grid density for full coverage."
+            : "Freehand flight path drawn on the map. Adjust the number of waypoints to control how closely the path is followed.";
 
   // Stop all pointer/keyboard/wheel events from reaching Leaflet (native DOM level)
   const panelRef = useRef<HTMLDivElement>(null);
@@ -206,6 +216,144 @@ export function TemplateConfigPanel({
               Center POI
             </label>
           </div>
+        </div>
+      )}
+
+      {/* Orbit+Z params */}
+      {type === "orbitz" && orbitZParams && onOrbitZChange && (
+        <div className="mb-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">
+                Radius ({distanceLabel(unitSystem)})
+              </Label>
+              <NumericInput
+                value={toDisplayDistance(orbitZParams.radiusM, unitSystem)}
+                onChange={(v) =>
+                  onOrbitZChange({
+                    ...orbitZParams,
+                    radiusM: fromDisplayDistance(v, unitSystem),
+                  })
+                }
+                min={5}
+                step={5}
+                fallback={5}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Points per orbit</Label>
+              <NumericInput
+                value={orbitZParams.numPoints}
+                onChange={(v) =>
+                  onOrbitZChange({ ...orbitZParams, numPoints: v })
+                }
+                min={3}
+                max={72}
+                fallback={12}
+                integer
+                className="h-7 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">
+                Initial height ({heightLabel(unitSystem)})
+              </Label>
+              <NumericInput
+                value={toDisplayHeight(orbitZParams.initialHeight, unitSystem)}
+                onChange={(v) => {
+                  const metricV = fromDisplayHeight(v, unitSystem);
+                  onOrbitZChange({
+                    ...orbitZParams,
+                    initialHeight: metricV,
+                    finalHeight: Math.max(
+                      metricV + 5,
+                      orbitZParams.finalHeight,
+                    ),
+                  });
+                }}
+                min={2}
+                step={5}
+                fallback={20}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">
+                Final height ({heightLabel(unitSystem)})
+              </Label>
+              <NumericInput
+                value={toDisplayHeight(orbitZParams.finalHeight, unitSystem)}
+                onChange={(v) =>
+                  onOrbitZChange({
+                    ...orbitZParams,
+                    finalHeight: Math.max(
+                      orbitZParams.initialHeight + 5,
+                      fromDisplayHeight(v, unitSystem),
+                    ),
+                  })
+                }
+                min={toDisplayHeight(
+                  orbitZParams.initialHeight + 5,
+                  unitSystem,
+                )}
+                step={5}
+                fallback={60}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Vertical overlap (%)</Label>
+              <NumericInput
+                value={orbitZParams.verticalOverlap}
+                onChange={(v) =>
+                  onOrbitZChange({ ...orbitZParams, verticalOverlap: v })
+                }
+                min={0}
+                max={95}
+                step={5}
+                fallback={70}
+                integer
+                className="h-7 text-xs"
+              />
+            </div>
+            <div className="flex items-end gap-2 pb-1">
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={orbitZParams.clockwise}
+                  onChange={(e) =>
+                    onOrbitZChange({
+                      ...orbitZParams,
+                      clockwise: e.target.checked,
+                    })
+                  }
+                  className="rounded"
+                />
+                CW
+              </label>
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={orbitZParams.createPoi}
+                  onChange={(e) =>
+                    onOrbitZChange({
+                      ...orbitZParams,
+                      createPoi: e.target.checked,
+                    })
+                  }
+                  className="rounded"
+                />
+                Center POI
+              </label>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            {orbitZLevelCount(orbitZParams)} stacked levels from{" "}
+            {toDisplayHeight(orbitZParams.initialHeight, unitSystem)} to{" "}
+            {toDisplayHeight(orbitZParams.finalHeight, unitSystem)}{" "}
+            {heightLabel(unitSystem)}
+          </p>
         </div>
       )}
 

@@ -72,13 +72,24 @@ function haversine(
 
 // ── Template Types ───────────────────────────────────────
 
-export type TemplateType = "orbit" | "grid" | "facade" | "pencil";
+export type TemplateType = "orbit" | "orbitz" | "grid" | "facade" | "pencil";
 
 export interface OrbitParams {
   center: [number, number]; // [lat, lng]
   radiusM: number;
   altitude: number;
   numPoints: number;
+  clockwise: boolean;
+  createPoi: boolean;
+}
+
+export interface OrbitZParams {
+  center: [number, number]; // [lat, lng]
+  radiusM: number;
+  initialHeight: number; // altitude of the lowest orbit
+  finalHeight: number; // altitude of the highest orbit
+  verticalOverlap: number; // vertical image overlap between levels, in percent (0–95)
+  numPoints: number; // waypoints per orbit level
   clockwise: boolean;
   createPoi: boolean;
 }
@@ -116,6 +127,7 @@ export interface PencilParams {
 
 export type TemplateParams =
   | OrbitParams
+  | OrbitZParams
   | GridParams
   | FacadeParams
   | PencilParams;
@@ -129,6 +141,15 @@ export interface TemplateResult {
 
 export const DEFAULT_ORBIT_PARAMS: Omit<OrbitParams, "center" | "radiusM"> = {
   altitude: 30,
+  numPoints: 12,
+  clockwise: true,
+  createPoi: true,
+};
+
+export const DEFAULT_ORBITZ_PARAMS: Omit<OrbitZParams, "center" | "radiusM"> = {
+  initialHeight: 20,
+  finalHeight: 60,
+  verticalOverlap: 70,
   numPoints: 12,
   clockwise: true,
   createPoi: true,
@@ -208,6 +229,127 @@ export function generateOrbit(params: OrbitParams): TemplateResult {
       useGlobalTurnParam: false,
       actions: [],
     });
+  }
+
+  return { waypoints, pois };
+}
+
+// ── Orbit+Z (stacked orbits) ─────────────────────────────
+
+/**
+ * Default camera vertical field of view in degrees — DJI wide-angle lens.
+ * Matches the value used by the camera FOV frustum overlay (CameraFrustum.tsx).
+ */
+export const DEFAULT_VERTICAL_FOV_DEG = 63;
+
+/** Hard cap on the number of stacked levels, to keep waypoint counts sane. */
+export const MAX_ORBITZ_LEVELS = 60;
+
+/**
+ * Number of stacked orbit levels needed to cover the span from `initialHeight`
+ * to `finalHeight` with the requested vertical image overlap.
+ *
+ * This mirrors the facade scan idea of deriving vertical coverage from the
+ * camera FOV: at the orbit radius the camera sees a vertical footprint of
+ * `2 * radius * tan(vFov / 2)`, and consecutive levels are spaced so that only
+ * a fraction `(1 - overlap)` of that footprint is fresh coverage. Levels are
+ * distributed evenly (endpoints included), exactly like the facade scan spreads
+ * its rows between min and max altitude.
+ */
+export function orbitZLevelCount(
+  params: Pick<
+    OrbitZParams,
+    "radiusM" | "initialHeight" | "finalHeight" | "verticalOverlap"
+  >,
+): number {
+  const span = Math.abs(params.finalHeight - params.initialHeight);
+  if (span <= 0) return 1;
+
+  const overlap = Math.min(Math.max(params.verticalOverlap / 100, 0), 0.95);
+  const footprintM =
+    2 * params.radiusM * Math.tan((DEFAULT_VERTICAL_FOV_DEG * Math.PI) / 360);
+  const spacingM = footprintM * (1 - overlap);
+  if (spacingM <= 0) return MAX_ORBITZ_LEVELS;
+
+  const levels = Math.ceil(span / spacingM) + 1;
+  return Math.min(Math.max(levels, 2), MAX_ORBITZ_LEVELS);
+}
+
+/**
+ * Stacked orbits at multiple altitudes. Reuses the native orbit waypoint logic
+ * (circle at constant radius, camera pointed toward the center) and stacks N
+ * complete orbits between `initialHeight` and `finalHeight`. Each orbit closes
+ * back to its starting azimuth; the transition to the next level is a pure
+ * vertical climb at that azimuth.
+ */
+export function generateOrbitZ(params: OrbitZParams): TemplateResult {
+  const {
+    center,
+    radiusM,
+    initialHeight,
+    finalHeight,
+    numPoints,
+    clockwise,
+    createPoi,
+  } = params;
+  const [cLat, cLng] = center;
+
+  const waypoints: TemplateResult["waypoints"] = [];
+  const pois: TemplateResult["pois"] = [];
+
+  if (createPoi) {
+    pois.push({
+      name: "Orbit+Z center",
+      latitude: cLat,
+      longitude: cLng,
+      height: 0,
+    });
+  }
+
+  const levels = orbitZLevelCount(params);
+
+  for (let level = 0; level < levels; level++) {
+    const altFraction = levels <= 1 ? 0 : level / (levels - 1);
+    const altitude = Math.round(
+      initialHeight + altFraction * (finalHeight - initialHeight),
+    );
+
+    // Ideal gimbal pitch for this level (same formula as orbit): the camera
+    // looks down toward the center at ground level.
+    const pitchRad = Math.atan2(altitude, radiusM);
+    const gimbalPitch = Math.round(-pitchRad * (180 / Math.PI));
+
+    // Emit numPoints around the circle, plus a closing waypoint back at the
+    // starting azimuth so each orbit is complete. The closing waypoint of one
+    // level and the opening waypoint of the next share the same lat/lng, which
+    // makes the level transition a pure vertical climb.
+    for (let i = 0; i <= numPoints; i++) {
+      const fraction = (i % numPoints) / numPoints;
+      // Start from North (0°), go clockwise or counter-clockwise
+      const angleDeg = clockwise ? fraction * 360 : 360 - fraction * 360;
+      const [lat, lng] = destinationPoint(cLat, cLng, radiusM, angleDeg);
+
+      // Heading toward center (native orbit method)
+      const headingAngle = bearing(lat, lng, cLat, cLng);
+      const normalizedHeading =
+        headingAngle > 180 ? headingAngle - 360 : headingAngle;
+
+      waypoints.push({
+        ...DEFAULT_WAYPOINT,
+        latitude: lat,
+        longitude: lng,
+        height: altitude,
+        speed: 5,
+        useGlobalSpeed: false,
+        useGlobalHeadingParam: false,
+        headingMode: "fixed",
+        headingAngle: Math.round(normalizedHeading),
+        gimbalPitchAngle: gimbalPitch,
+        turnMode: "toPointAndPassWithContinuityCurvature",
+        useGlobalTurnParam: false,
+        actions: [],
+      });
+    }
   }
 
   return { waypoints, pois };
