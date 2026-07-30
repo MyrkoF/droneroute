@@ -71,8 +71,17 @@ export async function parseKmz(buffer: Buffer): Promise<{
   const droneInfo = mc["wpml:droneInfo"] || {};
   const payloadInfo = mc["wpml:payloadInfo"] || {};
 
+  // The WPML namespace tells us the dialect: www.uav.com is DJI Fly (consumer,
+  // Mini series), www.dji.com is DJI Pilot 2 / Cloud API (enterprise). Detecting
+  // it here keeps import → export round-trips in the same dialect. The drone enum
+  // alone is ambiguous (e.g. 68 is used by both the M30 Dock and the Mini 5 Pro).
+  const dialect = templateXml.includes("www.uav.com")
+    ? "consumer"
+    : "enterprise";
+
   const config: MissionConfig = {
     ...DEFAULT_MISSION_CONFIG,
+    dialect,
     droneEnumValue: parseInt(droneInfo["wpml:droneEnumValue"] || "67"),
     droneSubEnumValue: parseInt(droneInfo["wpml:droneSubEnumValue"] || "0"),
     payloadEnumValue: parseInt(payloadInfo["wpml:payloadEnumValue"] || "52"),

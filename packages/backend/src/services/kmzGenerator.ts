@@ -15,16 +15,21 @@ export function generateKmzBuffer(mission: Mission): Promise<Buffer> {
 
     archive.pipe(passthrough);
 
+    // DJI Fly (consumer dialect) requires the mission files inside a wpmz/
+    // directory — verified against a native Mini 5 Pro mission. The enterprise
+    // layout is left untouched to avoid changing existing output.
+    const prefix = mission.config.dialect === "consumer" ? "wpmz/" : "";
+
     // Add template.kml
     const templateKml = buildTemplateKml(mission);
-    archive.append(templateKml, { name: "template.kml" });
+    archive.append(templateKml, { name: `${prefix}template.kml` });
 
     // Add waylines.wpml
     const waylinesWpml = buildWaylinesWpml(mission);
-    archive.append(waylinesWpml, { name: "waylines.wpml" });
+    archive.append(waylinesWpml, { name: `${prefix}waylines.wpml` });
 
     // Add empty res/ directory
-    archive.append("", { name: "res/" });
+    archive.append("", { name: `${prefix}res/` });
 
     archive.finalize();
   });

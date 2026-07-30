@@ -27,6 +27,7 @@ import {
 } from "@/lib/units";
 import {
   DRONE_MODELS,
+  droneModelKey,
   DEFAULT_USER_PREFERENCES,
   DEFAULT_MISSION_CONFIG,
 } from "@droneroute/shared";
@@ -137,9 +138,7 @@ export function AccountModal({ onClose }: AccountModalProps) {
   };
 
   const selectedDrone = DRONE_MODELS.find(
-    (d) =>
-      d.droneEnumValue === missionDefaults.droneEnumValue &&
-      d.droneSubEnumValue === missionDefaults.droneSubEnumValue,
+    (d) => droneModelKey(d) === droneModelKey(missionDefaults),
   );
 
   return (
@@ -377,13 +376,10 @@ export function AccountModal({ onClose }: AccountModalProps) {
               <div>
                 <Label className="text-xs">Drone model</Label>
                 <Select
-                  value={`${missionDefaults.droneEnumValue}-${missionDefaults.droneSubEnumValue}`}
+                  value={droneModelKey(missionDefaults)}
                   onValueChange={(v) => {
-                    const [drone, sub] = v.split("-").map(Number);
                     const model = DRONE_MODELS.find(
-                      (d) =>
-                        d.droneEnumValue === drone &&
-                        d.droneSubEnumValue === sub,
+                      (d) => droneModelKey(d) === v,
                     );
                     if (model) {
                       setMissionDefault({
@@ -391,6 +387,7 @@ export function AccountModal({ onClose }: AccountModalProps) {
                         droneSubEnumValue: model.droneSubEnumValue,
                         payloadEnumValue:
                           model.payloads[0]?.payloadEnumValue || 0,
+                        dialect: model.dialect ?? "enterprise",
                       });
                     }
                   }}
@@ -401,8 +398,8 @@ export function AccountModal({ onClose }: AccountModalProps) {
                   <SelectContent>
                     {DRONE_MODELS.map((d) => (
                       <SelectItem
-                        key={`${d.droneEnumValue}-${d.droneSubEnumValue}`}
-                        value={`${d.droneEnumValue}-${d.droneSubEnumValue}`}
+                        key={droneModelKey(d)}
+                        value={droneModelKey(d)}
                       >
                         {d.label}
                       </SelectItem>
