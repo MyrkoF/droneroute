@@ -4,6 +4,7 @@ import {
   Trash2,
   Crosshair,
   Orbit,
+  Layers,
   Grid3X3,
   Building2,
   PenLine,
@@ -34,6 +35,14 @@ const TEMPLATE_OPTIONS: {
     icon: Orbit,
     description: "Circle around a point",
     key: "O",
+  },
+  {
+    type: "orbitz",
+    label: "Orbit+Z",
+    shortLabel: "Orbit+Z",
+    icon: Layers,
+    description: "Stacked orbits at multiple altitudes",
+    key: "S",
   },
   {
     type: "grid",
@@ -155,6 +164,8 @@ export function MapToolbar() {
           <span className="flex items-center gap-1.5">
             {templateMode === "orbit" ? (
               <Orbit className="h-4 w-4" />
+            ) : templateMode === "orbitz" ? (
+              <Layers className="h-4 w-4" />
             ) : templateMode === "grid" ? (
               <Grid3X3 className="h-4 w-4" />
             ) : templateMode === "facade" ? (

@@ -9,6 +9,7 @@ Quick reference for all available keyboard shortcuts.
 | **W**                      | Enter waypoint placement mode                    |
 | **P**                      | Enter POI placement mode                         |
 | **O**                      | Open the orbit template                          |
+| **S**                      | Open the Orbit+Z template (stacked orbits)       |
 | **G**                      | Open the grid survey template                    |
 | **F**                      | Open the facade scan template                    |
 | **Z**                      | Open the pencil path template                    |

@@ -40,6 +40,7 @@ That's it. The rest of this guide covers every feature in detail.
 | `W`                    | Enter waypoint placement mode — click the map to add waypoints             |
 | `P`                    | Enter POI placement mode — click the map to add a Point of Interest        |
 | `O`                    | Start orbit template — click and drag on the map to define center + radius |
+| `S`                    | Start Orbit+Z template — stacked orbits at multiple altitudes              |
 | `G`                    | Start grid survey template — click and drag to define the survey area      |
 | `F`                    | Start facade scan template — click and drag to define the wall line        |
 | `Z`                    | Start pencil path template — click and draw freehand on the map            |
@@ -194,6 +195,26 @@ The gimbal pitch is automatically set to look toward the center point. If "Creat
 
 ![Orbit template configuration panel with live preview on the map](docs/screenshots/template-orbit.jpg)
 
+### Orbit+Z
+
+**Shortcut: S**
+
+Creates a set of stacked orbits at multiple altitudes around a single center — the vertical equivalent of the orbit template. Click and drag on the map to define the center and radius exactly like an orbit, then set the altitude range.
+
+**Configuration:**
+
+- **Radius** — distance from center (determined by drag distance)
+- **Points per orbit** — how many waypoints around each circle (3–72, default 12)
+- **Initial height** — altitude of the lowest orbit (default 20m)
+- **Final height** — altitude of the highest orbit (default 60m)
+- **Vertical overlap** — target image overlap between stacked levels, as a percentage (0–95%, default 70%)
+- **Clockwise** — orbit direction
+- **Create POI** — automatically places a POI at the center so the camera faces inward on every level
+
+**Use cases:** Towers, pylons, wind turbines, silos, buildings, and other tall vertical structures where a single orbit only captures one altitude band — 3D reconstruction and inspection of the full height of a structure.
+
+The number of levels is computed automatically from the vertical overlap and the camera field of view (the same approach the facade scan uses to derive its vertical coverage): at the orbit radius, higher overlap means more closely spaced levels. Each orbit is flown at a constant radius and closes back to its starting azimuth; the transition to the next level is a pure vertical climb. Heading and gimbal pitch use the native orbit method — the camera points toward the center on every level, with the gimbal tilting further down as altitude increases.
+
 ### Grid Survey
 
 **Shortcut: G**
@@ -294,7 +315,7 @@ The floating toolbar on the map provides:
 
 - **Waypoint mode** (W) — click to place waypoints
 - **POI mode** (P) — click to place points of interest
-- **Template dropdown** — Orbit (O), Grid (G), Facade (F), Pencil (Z)
+- **Template dropdown** — Orbit (O), Orbit+Z (S), Grid (G), Facade (F), Pencil (Z)
 
 ### Elevation Graph
 
