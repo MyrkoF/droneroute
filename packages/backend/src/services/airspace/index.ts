@@ -9,11 +9,17 @@ import type { AirspaceProvider, AirspaceZone, BBox } from "./types.js";
 import { enaireProvider } from "./provider-enaire.js";
 import { dgacProvider } from "./provider-dgac.js";
 import { natsProvider } from "./provider-nats.js";
+import { faaProvider } from "./provider-faa.js";
+import { aerocivilProvider } from "./provider-aerocivil.js";
+import { deceaProvider } from "./provider-decea.js";
 
 const providers: AirspaceProvider[] = [
   enaireProvider,
   dgacProvider,
   natsProvider,
+  faaProvider,
+  aerocivilProvider,
+  deceaProvider,
 ];
 
 /**

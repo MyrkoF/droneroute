@@ -59,6 +59,9 @@ You can overlay airspace restriction zones on the map to check for drone no-fly 
   - **Spain (ENAIRE)** — prohibited and restricted airspace zones.
   - **France (DGAC)** — UAS restriction zones for the open category and aeromodelling.
   - **United Kingdom (NATS)** — flight restriction zones around aerodromes, updated every 28 days.
+  - **United States (FAA)** — national security UAS flight restrictions, prohibited areas, and LAANC ceiling grids.
+  - **Colombia (Aerocivil)** — drone no-fly zones and airport/heliport safety buffers.
+  - **Brazil (DECEA)** — prohibited, restricted, danger, and control zones.
 - Press **A** to toggle all providers on/off at once.
 - Zones are classified as either **prohibited** (red) or **restricted** (orange).
 - When the flight path enters a prohibited zone, a red warning banner appears at the bottom of the map.

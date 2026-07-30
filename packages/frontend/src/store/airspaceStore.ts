@@ -39,6 +39,21 @@ export const AIRSPACE_PROVIDERS: AirspaceProviderInfo[] = [
     name: "United Kingdom (NATS)",
     description: "Flight restriction zones around aerodromes",
   },
+  {
+    id: "faa",
+    name: "United States (FAA)",
+    description: "National security, prohibited areas and LAANC ceilings",
+  },
+  {
+    id: "aerocivil",
+    name: "Colombia (Aerocivil)",
+    description: "Drone no-fly zones and airport/heliport buffers",
+  },
+  {
+    id: "decea",
+    name: "Brazil (DECEA)",
+    description: "Prohibited, restricted, danger and control zones",
+  },
 ];
 
 interface AirspaceState {
