@@ -224,6 +224,12 @@ export function TemplateDrawHandler() {
           center: finalDrag.start,
           radiusM: Math.round(dist),
         });
+      } else if (tm === "orbitz") {
+        setOrbitZParams({
+          ...DEFAULT_ORBITZ_PARAMS,
+          center: finalDrag.start,
+          radiusM: Math.round(dist),
+        });
       } else if (tm === "grid") {
         setGridParams({
           ...DEFAULT_GRID_PARAMS,
