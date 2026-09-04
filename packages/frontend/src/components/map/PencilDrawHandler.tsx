@@ -92,9 +92,24 @@ export function PencilDrawHandler() {
     // tablets / phones. One finger draws; two (or more) fingers are left to the
     // map's native pinch-zoom / pan. preventDefault() on touchstart suppresses
     // the map pan for the duration of a single-finger draw only.
+    // A second finger means "I want to move the map", never "continue this
+    // stroke": it must ABORT the stroke in progress. Without this, the path
+    // stayed "in progress" while the map zoomed under it, and touchend — whose
+    // `e.points` are the LIFTED touches (changedTouches), hence length 1 even
+    // mid-pinch — committed a path whose last point was read in a different
+    // viewport from the rest.
+    const cancelStroke = () => {
+      drawingRef.current = false;
+      pathRef.current = [];
+      resetState();
+    };
+
     const onTouchStart = (e: any) => {
       if (confirmed) return;
-      if (e.points && e.points.length > 1) return;
+      if (e.points && e.points.length > 1) {
+        if (drawingRef.current) cancelStroke();
+        return;
+      }
       e.preventDefault();
       const pos: [number, number] = [e.lngLat.lat, e.lngLat.lng];
       drawingRef.current = true;
@@ -117,6 +132,11 @@ export function PencilDrawHandler() {
 
     const onTouchEnd = (e: any) => {
       if (!drawingRef.current) return;
+      // Same guard as touchstart / touchmove — it was the one missing here.
+      if (e.points && e.points.length > 1) {
+        cancelStroke();
+        return;
+      }
       drawingRef.current = false;
 
       // On touchend lngLat is derived from the lifted finger (changedTouches).
