@@ -5,8 +5,11 @@
 <h1 align="center">DroneRoute</h1>
 
 <p align="center">
-  <a href="https://github.com/fcsonline/droneroute/actions/workflows/ci.yml"><img src="https://github.com/fcsonline/droneroute/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/MyrkoF/droneroute/actions/workflows/ci.yml"><img src="https://github.com/MyrkoF/droneroute/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://buymeacoffee.com/myrko.f"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-orange?logo=buy-me-a-coffee" alt="Buy Me a Coffee" /></a>
 </p>
+
+> **This is the [DataTerra](https://dataterra.co) fork of DroneRoute**, originally created by Ferran Basora ([fcsonline/droneroute](https://github.com/fcsonline/droneroute)). Since September 2026 it is developed independently: it keeps everything the original does and adds the features listed under [What this fork adds](#what-this-fork-adds). The working branch is `dataterra-build`.
 
 A free, open-source mission planner for DJI drones. Plan waypoint missions on an interactive map, tweak flight parameters, and export KMZ files ready to fly.
 
@@ -31,6 +34,13 @@ A free, open-source mission planner for DJI drones. Plan waypoint missions on an
 - **Keyboard shortcuts** — `W` add waypoint, `P` add POI, `Z` pencil path, `Esc` deselect, `Delete` remove selected
 - **Self-hosted** — Run it on your own machine or server with Docker
 
+## What this fork adds
+
+- **DJI Mini 5 Pro support** — drone profile and DJI Fly-compatible WPML export (round-trip tested on the aircraft)
+- **Orbit+Z template** — stacked orbits at several altitudes around a point of interest, for 3D building and tower scans
+- **Template drawing on touch devices** — draw orbits, grids and facade scans directly on a tablet or phone
+- **Airspace layers for the Americas** — controlled/restricted airspace from the FAA (United States), Aerocivil (Colombia) and DECEA (Brazil), shown on the map while you plan
+
 ## Supported Drones
 
 DJI M300 RTK, M350 RTK, M30/M30T, Mavic 3E/3T/3M/3D/3TD, Mini 4 Pro, Mini 5 Pro.
@@ -41,7 +51,7 @@ You'll need **Node.js 22+** and **npm 10+**.
 
 ```bash
 # Clone the repo
-git clone https://github.com/fcsonline/droneroute.git
+git clone https://github.com/MyrkoF/droneroute.git
 cd droneroute
 
 # Install dependencies
@@ -61,7 +71,9 @@ That's it! Open `http://localhost:5173` and start planning missions.
 Prefer Docker? One command:
 
 ```bash
-docker run -d -p 3001:3001 -v droneroute-data:/app/data fcsonline/droneroute:latest
+# This fork is not published on Docker Hub — build the image locally:
+docker build -t droneroute:local .
+docker run -d -p 3001:3001 -v droneroute-data:/app/data droneroute:local
 # Open http://localhost:3001
 ```
 
@@ -106,13 +118,15 @@ Contributions are welcome! Whether it's a bug fix, a new feature, or improving t
 4. Run the dev server and make sure things work (`npm run dev`)
 5. Open a Pull Request
 
-If you find a bug or have an idea, feel free to [open an issue](https://github.com/fcsonline/droneroute/issues). We'd love to hear from you.
+If you find a bug or have an idea, feel free to [open an issue](https://github.com/MyrkoF/droneroute/issues). We'd love to hear from you. Changes are made in this fork; they are not submitted upstream.
 
 ## Support the Project
 
-DroneRoute is built and maintained in my spare time. If it saves you time planning your flights, consider buying me a coffee — it helps keep the project going.
+This fork is maintained by [DataTerra](https://dataterra.co) alongside our drone-survey work in Latin America. If it saves you time planning your flights, consider buying us a coffee — it helps keep the fork going.
 
-[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/fcsonline)
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/myrko.f)
+
+The original DroneRoute was created by Ferran Basora — thank you for building it and releasing it under MIT.
 
 ## Disclaimer
 
@@ -122,4 +136,4 @@ DroneRoute is an independent, community-driven project. It is not affiliated wit
 
 ## License
 
-MIT
+MIT — original work © 2025 Ferran Basora; modifications © 2026 Myrko Federico (DataTerra). See [LICENSE](LICENSE).
