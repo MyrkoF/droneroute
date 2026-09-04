@@ -379,9 +379,23 @@ function buildConsumerPlacemark(
   const speed = wp.useGlobalSpeed ? c.autoFlightSpeed : wp.speed;
 
   let headingAngle = wp.headingAngle ?? 0;
-  let poiPoint = "0.000000,0.000000,0.000000";
-  if (headingMode === "towardPOI" && wp.poiId) {
-    const poi = findPoi(pois, wp.poiId);
+  // "Toward POI" with no POI resolved must NOT write a target. This used to
+  // default to "0.000000,0.000000,0.000000" and emit it unconditionally, so a
+  // mission set to Toward POI whose waypoints keep `useGlobalHeadingParam`
+  // (the default) — hence no `poiId` — asked the aircraft to aim at latitude 0
+  // / longitude 0 at every waypoint: Null Island, in the Gulf of Guinea. Same
+  // outcome if the POI is deleted after being assigned (`findPoi` returns
+  // undefined). And since `waypointHeadingAngleEnable` is 0 outside "fixed"
+  // mode, it is exactly this point that drives the gimbal.
+  //
+  // The enterprise path already degrades correctly (empty string, tag emitted
+  // only when the POI resolves); this mirrors it, and additionally falls back
+  // to `followWayline` — a heading mode that references a target absent from
+  // the file is not a mode the aircraft can honour.
+  let poiPointXml = "";
+  let effectiveHeadingMode = headingMode;
+  if (headingMode === "towardPOI") {
+    const poi = wp.poiId ? findPoi(pois, wp.poiId) : undefined;
     if (poi) {
       headingAngle = computeBearing(
         wp.latitude,
@@ -389,7 +403,10 @@ function buildConsumerPlacemark(
         poi.latitude,
         poi.longitude,
       );
-      poiPoint = `${poi.latitude},${poi.longitude},${poi.height}`;
+      poiPointXml = `
+          <wpml:waypointPoiPoint>${poi.latitude},${poi.longitude},${poi.height}</wpml:waypointPoiPoint>`;
+    } else {
+      effectiveHeadingMode = "followWayline";
     }
   }
 
@@ -402,10 +419,9 @@ function buildConsumerPlacemark(
         <wpml:executeHeight>${wp.height}</wpml:executeHeight>
         <wpml:waypointSpeed>${speed}</wpml:waypointSpeed>
         <wpml:waypointHeadingParam>
-          <wpml:waypointHeadingMode>${headingMode}</wpml:waypointHeadingMode>
-          <wpml:waypointHeadingAngle>${headingAngle}</wpml:waypointHeadingAngle>
-          <wpml:waypointPoiPoint>${poiPoint}</wpml:waypointPoiPoint>
-          <wpml:waypointHeadingAngleEnable>${headingMode === "fixed" ? 1 : 0}</wpml:waypointHeadingAngleEnable>
+          <wpml:waypointHeadingMode>${effectiveHeadingMode}</wpml:waypointHeadingMode>
+          <wpml:waypointHeadingAngle>${headingAngle}</wpml:waypointHeadingAngle>${poiPointXml}
+          <wpml:waypointHeadingAngleEnable>${effectiveHeadingMode === "fixed" ? 1 : 0}</wpml:waypointHeadingAngleEnable>
           <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
           <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
         </wpml:waypointHeadingParam>

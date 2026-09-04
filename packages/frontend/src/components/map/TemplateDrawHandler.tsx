@@ -174,9 +174,26 @@ export function TemplateDrawHandler() {
     // are left to the map's native pinch-zoom / pan. preventDefault() on
     // touchstart suppresses the map pan for the duration of a single-finger
     // draw only.
+    //
+    // A second finger means "I want to move the map", never "continue this
+    // stroke": it must ABORT the stroke in progress. Without this, the stroke
+    // stayed "in progress" while the map zoomed under it, and touchend — whose
+    // `e.points` are the LIFTED touches (changedTouches), hence length 1 even
+    // mid-pinch — happily committed a radius measured across two different
+    // viewports. An orbit hundreds of metres or kilometres wide was then shown
+    // as a normal template, with the level and photo counts that follow from it.
+    const cancelStroke = () => {
+      isDragging = false;
+      currentDrag = null;
+      resetState();
+    };
+
     const onTouchStart = (e: any) => {
       if (confirmed) return;
-      if (e.points && e.points.length > 1) return;
+      if (e.points && e.points.length > 1) {
+        if (isDragging) cancelStroke();
+        return;
+      }
       e.preventDefault();
       const pos: [number, number] = [e.lngLat.lat, e.lngLat.lng];
       isDragging = true;
@@ -195,6 +212,14 @@ export function TemplateDrawHandler() {
 
     const onTouchEnd = (e: any) => {
       if (!isDragging || !currentDrag) return;
+      // Same guard as touchstart / touchmove — it was the one missing. On
+      // touchend `e.points` describes the LIFTED touches, so a pinch that ends
+      // one finger at a time arrives here with length 1; the length > 1 case is
+      // the multi-finger release, and neither is a stroke to commit.
+      if (e.points && e.points.length > 1) {
+        cancelStroke();
+        return;
+      }
       isDragging = false;
 
       // On touchend lngLat is derived from the lifted finger (changedTouches).
