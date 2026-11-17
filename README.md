@@ -1,3 +1,7 @@
+> **ARCHIVED (November 17, 2026).** This fork is no longer maintained. Development of the mission planner continues inside the [DataTerra](https://dataterra.co) application. The original project remains the work of its author, Ferran Basora: [fcsonline/droneroute](https://github.com/fcsonline/droneroute). This repository is kept as-is under the MIT license (see `LICENSE`); the final state is tagged `dataterra-final-20261117`.
+>
+> **ARCHIVADO (17 de noviembre de 2026).** Este fork ya no se mantiene. El desarrollo del planificador de misiones continua dentro de la aplicacion [DataTerra](https://dataterra.co). El proyecto original sigue siendo obra de su autor, Ferran Basora: [fcsonline/droneroute](https://github.com/fcsonline/droneroute). Este repositorio se conserva tal cual bajo licencia MIT (ver `LICENSE`); el estado final esta etiquetado `dataterra-final-20261117`.
+
 <p align="center">
   <img src="droneroute.png" alt="DroneRoute" width="128" />
 </p>
